@@ -4,16 +4,37 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/api';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('user', JSON.stringify({ email, name: email.split('@')[0] }));
-    navigate('/dashboard');
+    setIsLoading(true);
+    
+    try {
+      const response = await api.auth.login(email, password);
+      localStorage.setItem('user', JSON.stringify(response.user));
+      toast({
+        title: 'Вход выполнен',
+        description: `Добро пожаловать, ${response.user.name}!`
+      });
+      navigate('/dashboard');
+    } catch (error) {
+      toast({
+        title: 'Ошибка входа',
+        description: error instanceof Error ? error.message : 'Проверьте email и пароль',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -60,8 +81,8 @@ export default function Login() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full">
-              Войти
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Вход...' : 'Войти'}
             </Button>
             <p className="text-sm text-center text-muted-foreground">
               Нет аккаунта?{' '}

@@ -4,22 +4,48 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/api';
 
 export default function Register() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      alert('Пароли не совпадают');
+      toast({
+        title: 'Ошибка',
+        description: 'Пароли не совпадают',
+        variant: 'destructive'
+      });
       return;
     }
-    localStorage.setItem('user', JSON.stringify({ email, name }));
-    navigate('/dashboard');
+    
+    setIsLoading(true);
+    
+    try {
+      const response = await api.auth.register(name, email, password);
+      localStorage.setItem('user', JSON.stringify(response.user));
+      toast({
+        title: 'Регистрация успешна',
+        description: 'Добро пожаловать в БизнесПлан.рф!'
+      });
+      navigate('/dashboard');
+    } catch (error) {
+      toast({
+        title: 'Ошибка регистрации',
+        description: error instanceof Error ? error.message : 'Попробуйте другой email',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -94,8 +120,8 @@ export default function Register() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full">
-              Зарегистрироваться
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}
             </Button>
             <p className="text-sm text-center text-muted-foreground">
               Уже есть аккаунт?{' '}
